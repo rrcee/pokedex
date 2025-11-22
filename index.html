@@ -3,762 +3,924 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokédex - Upgraded</title>
-    <!-- Tailwind CSS -->
+    <title>FaunaDex - Real World Animal Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
     
     <style>
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        :root {
+            --dex-red: #dc2626;
+            --dex-dark-red: #991b1b;
+            --screen-bg: #1e293b;
         }
 
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes zoomIn {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
-        .animate-zoom-in { animation: zoomIn 0.3s ease-out forwards; }
-        
-        /* Loader */
-        .loader {
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #ef4444;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Header pokeball spin */
-        @keyframes spin-pause {
-            0% { transform: rotate(0deg); }
-            10% { transform: rotate(360deg); } 
-            100% { transform: rotate(360deg); } 
-        }
-        #pokeballIcon {
-            animation: spin-pause 5s linear infinite;
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
         }
 
-        /* Ensure select arrow doesn't overlap text */
-        select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-position: right 0.75rem center;
-            background-repeat: no-repeat;
-            background-size: 1.25em 1.25em;
+        /* Pokedex Casing Styles */
+        .dex-shell {
+            box-shadow: 
+                inset 4px 4px 10px rgba(255,255,255,0.3),
+                inset -4px -4px 10px rgba(0,0,0,0.5),
+                10px 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .dex-screen-container {
+            background-color: #e2e8f0;
+            border-radius: 1rem 1rem 1rem 3rem;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .dex-screen {
+            background: #0f172a;
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* Blue Sensor Animation */
+        .sensor-glow {
+            background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
+            box-shadow: 0 0 15px #3b82f6;
+            animation: pulse-blue 3s infinite;
+        }
+        @keyframes pulse-blue {
+            0%, 100% { box-shadow: 0 0 10px #3b82f6; }
+            50% { box-shadow: 0 0 25px #60a5fa; }
+        }
+
+        /* LED Animations */
+        .led-red { animation: blink 1s infinite alternate; }
+        .led-yellow { animation: blink 1.5s infinite alternate; }
+        .led-green { animation: blink 2s infinite alternate; }
+        
+        @keyframes blink {
+            0% { opacity: 0.4; }
+            100% { opacity: 1; box-shadow: 0 0 8px currentColor; }
+        }
+
+        /* Scanning Effect */
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+            animation: scan 2s linear infinite;
+            z-index: 20;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Drag Overlay */
+        .drag-overlay {
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px dashed #10b981;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        #authOverlay, #setupOverlay {
+            backdrop-filter: blur(4px);
         }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900 min-h-screen">
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8">
 
-    <!-- Header -->
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div class="max-w-5xl mx-auto px-4 py-4">
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <!-- Pokeball Icon -->
-                    <div id="pokeballIcon" class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-500/30 overflow-hidden relative">
-                        <div class="absolute top-[45%] w-full h-[10%] bg-red-700"></div>
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-4 border-red-700 z-10"></div>
-                        <div class="absolute bottom-0 w-full h-1/2 bg-white"></div>
-                    </div>
-                    <h1 class="text-2xl font-black tracking-tight text-slate-800">Pokédex</h1>
+    <!-- Pokedex Body -->
+    <div class="dex-shell relative w-full max-w-md bg-red-600 rounded-[2.5rem] p-6 pb-10 flex flex-col gap-6 border-4 border-red-800">
+        
+        <!-- Top Decor (Sensor & LEDs) -->
+        <div class="flex items-start justify-between pb-2 border-b-4 border-red-800/30">
+            <div class="flex items-start gap-4">
+                <!-- Main Blue Sensor -->
+                <div class="w-16 h-16 rounded-full border-4 border-white/20 sensor-glow relative overflow-hidden">
+                    <div class="absolute top-2 left-2 w-4 h-4 bg-white/60 rounded-full blur-[1px]"></div>
                 </div>
                 
-                <!-- Controls: Sort + Search -->
-                <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                    <!-- Sort Dropdown -->
-                    <div class="relative w-full sm:w-auto">
-                        <select id="sortSelect" class="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl bg-slate-100 border-none focus:ring-2 focus:ring-red-500/50 focus:bg-white transition-all outline-none font-medium text-slate-700 placeholder:text-slate-400">
-                            <option value="id">Sort by ID</option>
-                            <option value="name">Sort by Name (A-Z)</option>
-                        </select>
-                        <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none"></i>
-                    </div>
-
-                    <!-- Search Bar -->
-                    <div class="relative w-full sm:w-72">
-                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 z-10"></i>
-                        <input
-                            type="text"
-                            id="searchInput"
-                            placeholder="Search by name or ID..."
-                            class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-100 border-none focus:ring-2 focus:ring-red-500/50 focus:bg-white transition-all outline-none font-medium text-slate-700 placeholder:text-slate-400"
-                        >
-                        <button id="clearSearchBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 w-5 h-5 hidden transition-colors">
-                            <i data-lucide="x" class="w-full h-full"></i>
-                        </button>
-                    </div>
+                <!-- Small LEDs -->
+                <div class="flex gap-2 pt-1">
+                    <div class="w-3 h-3 rounded-full bg-red-500 border border-red-700 led-red"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-400 border border-yellow-600 led-yellow"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500 border border-green-700 led-green"></div>
                 </div>
             </div>
-        </div>
-    </header>
 
-    <!-- Main Grid -->
-    <main class="max-w-5xl mx-auto px-4 py-6 sm:py-8">
-        
-        <!-- Pokemon Grid Container -->
-        <div id="pokemonGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            <!-- Cards will be injected here -->
-        </div>
-
-        <!-- Loading State -->
-        <div id="initialLoader" class="py-12 flex flex-col items-center justify-center text-slate-400 gap-3">
-            <div class="loader w-8 h-8"></div>
-            <p class="font-medium text-sm">Catching them all...</p>
-        </div>
-
-        <!-- No Results Message -->
-        <div id="noResults" class="hidden text-center py-20 text-slate-400">
-            <p class="text-lg font-medium">No Pokémon found matching your search.</p>
-        </div>
-
-        <!-- Load More Button -->
-        <div id="loadMoreContainer" class="hidden mt-12 flex justify-center">
-            <button id="loadMoreBtn" class="group px-8 py-3 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50 text-slate-700 hover:text-red-600 rounded-full font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50">
-                <span class="btn-text">Load More Pokémon</span>
-                <span class="loader hidden w-4 h-4"></span>
-                <i data-lucide="chevron-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform btn-icon"></i>
+            <!-- Settings Button (Now White) -->
+            <button onclick="window.toggleSettings()" class="text-white hover:text-red-200 transition-colors p-2">
+                <i data-lucide="settings" class="w-6 h-6"></i>
             </button>
         </div>
 
-        <!-- Error Message -->
-        <div id="errorMessage" class="hidden text-center py-12">
-            <p class="text-red-500 font-bold">Could not load Pokémon. Please try again.</p>
-            <button onclick="initialize()" class="mt-4 px-6 py-2 bg-red-500 text-white rounded-full font-bold">Retry</button>
+        <!-- Screen Area -->
+        <div class="dex-screen-container p-6 sm:p-8 bg-stone-200">
+            <div class="dex-screen relative h-[500px] rounded-lg border-4 border-slate-700 overflow-hidden flex flex-col">
+                
+                <!-- Drag Drop Overlay -->
+                <div id="dragOverlay" class="absolute inset-0 z-40 hidden flex-col items-center justify-center drag-overlay backdrop-blur-sm transition-all">
+                    <i data-lucide="upload-cloud" class="w-16 h-16 text-emerald-400 mb-2"></i>
+                    <p class="text-emerald-400 font-bold text-lg animate-pulse">DROP SPECIMEN IMAGE</p>
+                </div>
+
+                <!-- Settings Overlay (Dynamic Content) -->
+                <div id="settingsOverlay" class="absolute inset-0 z-50 hidden bg-slate-900 p-6 flex-col animate-in fade-in">
+                    <!-- Content populated by renderSettings() in JS -->
+                </div>
+
+                <!-- Setup/Welcome Overlay (New, high priority after Auth) -->
+                <div id="setupOverlay" class="absolute inset-0 z-50 hidden bg-slate-900/95 p-6 flex-col items-center justify-center text-center">
+                    <!-- Content populated by renderSetupScreen() in JS -->
+                </div>
+
+                <!-- Main Content State -->
+                <div id="contentArea" class="flex-1 overflow-y-auto p-4 relative z-10">
+                    <!-- Content injected via JS -->
+                </div>
+
+                <!-- Message/Alert Overlay -->
+                <div id="messageOverlay" class="absolute top-4 left-4 right-4 z-50 hidden animate-in slide-in-from-top-5">
+                    <div class="bg-red-500 text-white px-4 py-3 rounded shadow-lg text-xs font-bold border border-red-400 flex justify-between items-center">
+                        <span id="messageText">System Error</span>
+                        <button onclick="document.getElementById('messageOverlay').classList.add('hidden')"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <!-- Scanning Overlay (Hidden by default) -->
+                <div id="scanOverlay" class="absolute inset-0 bg-emerald-900/80 z-30 hidden flex-col items-center justify-center text-center p-6">
+                    <div class="scanner-line"></div>
+                    <i data-lucide="scan" class="w-16 h-16 text-emerald-400 animate-pulse mb-4"></i>
+                    <h2 class="text-2xl text-emerald-400 font-bold mb-2">ANALYZING...</h2>
+                    <p id="scanStatus" class="text-emerald-200 text-xs font-mono">Querying Genetic Database...</p>
+                </div>
+
+            </div>
+            
+            <!-- Screen Controls -->
+            <div class="flex justify-between items-center mt-4 px-2">
+                <div class="flex gap-2">
+                    <div class="w-8 h-8 bg-red-500 rounded-full border-2 border-red-700 shadow-md"></div>
+                    <div class="h-2 w-8 bg-slate-400 rounded-full mt-3"></div>
+                    <div class="h-2 w-8 bg-blue-400 rounded-full mt-3"></div>
+                </div>
+                <div class="text-slate-500 font-bold text-xs tracking-widest">FAUNADEX v2.7</div>
+            </div>
         </div>
-    </main>
 
-    <!-- Back to Top Button -->
-    <button id="backToTopBtn" class="hidden fixed bottom-6 right-6 z-50 p-3 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all">
-        <i data-lucide="arrow-up" class="w-6 h-6"></i>
-    </button>
+        <!-- Bottom Inputs -->
+        <div class="relative z-20">
+            <!-- 
+            Auth Loading Overlay: Covers the buttons below until auth is ready.
+            -->
+            <div id="authOverlay" class="absolute inset-0 bg-slate-900/50 flex flex-col items-center justify-center z-50 rounded-lg p-4 text-center">
+                <i data-lucide="loader-2" class="w-10 h-10 text-emerald-400 animate-spin"></i>
+                <p id="authStatus" class="text-emerald-300 font-mono mt-3 text-sm">BOOTING SYSTEM... (Connecting...)</p>
+            </div>
 
-    <!-- Modal -->
-    <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-        <!-- Modal Content will be injected here -->
+            <div class="grid grid-cols-3 gap-4">
+                <!-- D-Pad Visual -->
+                <div class="w-24 h-24 relative">
+                    <div class="absolute top-0 left-1/3 w-1/3 h-full bg-slate-800 rounded-sm shadow-md"></div>
+                    <div class="absolute top-1/3 left-0 w-full h-1/3 bg-slate-800 rounded-sm shadow-md"></div>
+                    <div class="absolute top-1/3 left-1/3 w-1/3 h-1/3 bg-slate-700 rounded-full inset-shadow"></div>
+                </div>
+
+                <!-- Main Action Button & Status -->
+                <div class="col-span-2 flex flex-col gap-2 justify-center">
+                    <!-- Placeholder for future status or just an empty space -->
+                    <div class="h-5"></div> 
+
+                    <label class="group cursor-pointer relative">
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" capture="environment">
+                        <div class="bg-sky-500 hover:bg-sky-400 border-b-8 border-sky-700 active:border-b-0 active:translate-y-2 transition-all rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg">
+                            <i data-lucide="camera" class="w-8 h-8 text-white"></i>
+                            <span class="text-white font-bold text-xl tracking-wider">SCAN ANIMAL</span>
+                        </div>
+                    </label>
+                    <p class="text-center text-red-200 text-xs opacity-70">or drag & drop image on screen</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- NEW: Shiny Toggle Function -->
-    <script>
-        // This function needs to be global to be called by `onclick`
-        function toggleShiny(event, defaultSprite, shinySprite) {
-            event.stopPropagation(); // Prevents modal from closing
-            const img = document.getElementById('pokemonModalImage');
-            const btn = event.currentTarget; // The button that was clicked
-            
-            if (!img || !btn) return;
+    <!-- MERGED AND FIXED SCRIPT BLOCK -->
+    <script type="module">
+        // --- 1. Imports ---
+        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, updateProfile } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-            if (img.src === defaultSprite) {
-                img.src = shinySprite;
-                btn.classList.add('text-yellow-400', 'ring-2', 'ring-yellow-400');
-                btn.classList.remove('text-white');
-            } else {
-                img.src = defaultSprite;
-                btn.classList.remove('text-yellow-400', 'ring-2', 'ring-yellow-400');
-                btn.classList.add('text-white');
-            }
-        }
-    </script>
 
-    <script>
-        // --- Constants ---
-        const TYPE_COLORS = {
-            normal: 'bg-neutral-400', fire: 'bg-orange-500', water: 'bg-blue-500',
-            electric: 'bg-yellow-400', grass: 'bg-green-500', ice: 'bg-cyan-300',
-            fighting: 'bg-red-700', poison: 'bg-purple-500', ground: 'bg-amber-600',
-            flying: 'bg-indigo-400', psychic: 'bg-pink-500', bug: 'bg-lime-500',
-            rock: 'bg-stone-500', ghost: 'bg-purple-800', dragon: 'bg-indigo-600',
-            steel: 'bg-slate-400', dark: 'bg-neutral-800', fairy: 'bg-pink-300'
+        // --- 2. Config ---
+        // Placeholder Firebase configuration (will be overridden by environment variables in Canvas)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTA2k1HG4DNvCPzl-V4e3OYAEnMMNSBGV",
+            authDomain: "faunadex-54162.firebaseapp.com",
+            projectId: "faunadex-54162",
+            storageBucket: "faunadex-54162.firebasestorage.app",
+            messagingSenderId: "549732913816",
+            appId: "1:549732913816:web:2683af5eb3631fc589f6ed",
+            measurementId: "G-ZVFL1D3HR7"
         };
 
-        const LIMIT = 20;
-        const API_MASTER_LIST_URL = 'https://pokeapi.co/api/v2/pokemon?limit=1500';
+        // --- 3. Firebase Initialization ---
+        const effectiveFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
         
-        // --- State ---
-        let allPokemonNamesList = []; // Master list of {name, url}
-        let loadedPokemonDetails = {}; // Cache for fetched details, keyed by name
+        const app = initializeApp(effectiveFirebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
         
-        let mainListOffset = 0;
-        let currentSearchResults = [];
-        let searchOffset = 0;
-        let isSearching = false;
-        let currentSort = 'id'; // NEW: Sorting state
+        setLogLevel('debug'); 
 
-        let loading = false; // For initial load
-        let loadingMore = false; // For any "load more" action
-        let searchDebounceTimer;
+        // --- 4. App Globals and State ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Note: API key is now strictly internal and cannot be edited by the user.
+        const GEMINI_API_KEY = ""; // Rely on the environment to provide the key securely
 
-        // --- DOM Elements ---
-        const grid = document.getElementById('pokemonGrid');
-        const initialLoader = document.getElementById('initialLoader');
-        const loadMoreContainer = document.getElementById('loadMoreContainer');
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        const searchInput = document.getElementById('searchInput');
-        const clearSearchBtn = document.getElementById('clearSearchBtn');
-        const noResults = document.getElementById('noResults');
-        const errorMessage = document.getElementById('errorMessage');
-        const modal = document.getElementById('detailModal');
-        const backToTopBtn = document.getElementById('backToTopBtn'); // NEW: Back to Top
-        const sortSelect = document.getElementById('sortSelect'); // NEW: Sort Select
+        let currentUser = null;
+        let sightings = [];
+        let currentAnalysis = null;
+        let userLocation = localStorage.getItem('faunadex_location') || "Acquiring..."; 
+        let userNickname = localStorage.getItem('faunadex_nickname') || 'Explorer';
 
-        // --- Helpers ---
-        const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-        const formatId = (id) => `#${id.toString().padStart(4, '0')}`;
-        const getIdFromUrl = (url) => parseInt(url.split('/')[url.split('/').length - 2], 10);
-        
-        // --- Core Logic ---
 
-        /**
-         * Fetches details for a list of Pokémon.
-         * Uses a cache (loadedPokemonDetails) to avoid re-fetching.
-         */
-        async function fetchPokemonDetails(results) {
-            const namesToFetch = results.filter(p => !loadedPokemonDetails[p.name]);
-            
-            if (namesToFetch.length > 0) {
-                const detailPromises = namesToFetch.map(async (p) => {
-                    const res = await fetch(p.url);
-                    if (!res.ok) throw new Error(`Failed to fetch details for ${p.name}`);
-                    return res.json();
-                });
-                
-                const newDetails = await Promise.all(detailPromises);
-                
-                newDetails.forEach(p => {
-                    loadedPokemonDetails[p.name] = p;
-                });
-            }
-            
-            return results.map(p => loadedPokemonDetails[p.name]);
+        // --- Elements ---
+        const contentArea = document.getElementById('contentArea');
+        const scanOverlay = document.getElementById('scanOverlay');
+        const scanStatus = document.getElementById('scanStatus');
+        const dragOverlay = document.getElementById('dragOverlay');
+        const fileInput = document.getElementById('fileInput');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const messageOverlay = document.getElementById('messageOverlay');
+        const messageText = document.getElementById('messageText');
+        const authOverlay = document.getElementById('authOverlay');
+        const authStatus = document.getElementById('authStatus');
+        const setupOverlay = document.getElementById('setupOverlay'); 
+
+
+        // --- UI Helpers ---
+        window.showMessage = (msg) => {
+            if (!messageOverlay || !messageText) return;
+            messageText.innerText = msg;
+            messageOverlay.classList.remove('hidden');
+            setTimeout(() => messageOverlay.classList.add('hidden'), 4000);
         }
-        
-        /**
-         * Initializes the app: fetches the master list and loads the first batch.
-         */
-        async function initialize() {
-            loading = true;
-            initialLoader.classList.remove('hidden');
-            errorMessage.classList.add('hidden');
-            grid.innerHTML = '';
-            
-            try {
-                const response = await fetch(API_MASTER_LIST_URL);
-                if (!response.ok) throw new Error('Failed to fetch master list');
-                const data = await response.json();
-                allPokemonNamesList = data.results;
-                
-                // NEW: Sort the list based on the current selection
-                sortMasterList();
-                
-                mainListOffset = 0;
-                loadedPokemonDetails = {};
-                await loadMorePokemon(); 
-                
-            } catch (err)
- {
-                console.error(err);
-                errorMessage.classList.remove('hidden');
-            } finally {
-                loading = false;
-                initialLoader.classList.add('hidden');
-            }
-        }
-        
-        /**
-         * Loads the next batch of Pokémon from the main master list.
-         */
-        async function loadMorePokemon() {
-            if (loadingMore || isSearching) return;
 
-            try {
-                loadingMore = true;
-                toggleLoadMoreLoading(true);
-                errorMessage.classList.add('hidden');
-
-                const batchToFetch = allPokemonNamesList.slice(mainListOffset, mainListOffset + LIMIT);
-                
-                if (batchToFetch.length === 0) {
-                    loadMoreContainer.classList.add('hidden'); 
-                    return;
-                }
-
-                const details = await fetchPokemonDetails(batchToFetch);
-                
-                mainListOffset += LIMIT;
-                renderGrid(details, true);
-                
-                if (mainListOffset < allPokemonNamesList.length) {
-                    loadMoreContainer.classList.remove('hidden');
+        const getGeolocation = () => {
+            return new Promise((resolve) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude.toFixed(4);
+                            const lon = position.coords.longitude.toFixed(4);
+                            userLocation = `${lat}, ${lon}`;
+                            localStorage.setItem('faunadex_location', userLocation);
+                            resolve();
+                        },
+                        (error) => {
+                            userLocation = "Geo-Location Disabled/Denied";
+                            localStorage.setItem('faunadex_location', userLocation);
+                            resolve();
+                        },
+                        { timeout: 5000 }
+                    );
                 } else {
-                    loadMoreContainer.classList.add('hidden');
+                    userLocation = "Geolocation Not Supported";
+                    localStorage.setItem('faunadex_location', userLocation);
+                    resolve();
                 }
+            });
+        };
 
-            } catch (err) {
-                console.error(err);
-                errorMessage.classList.remove('hidden');
-            } finally {
-                loadingMore = false;
-                toggleLoadMoreLoading(false);
-            }
-        }
+        // --- Setup Functions ---
 
-        /**
-         * Loads the next batch of Pokémon from the search results.
-         */
-        async function loadMoreSearchResults() {
-            if (loadingMore || !isSearching) return; 
+        window.completeSetup = async () => {
+            const nicknameInput = document.getElementById('nicknameInput');
+            const nickname = nicknameInput ? nicknameInput.value.trim() : 'Explorer';
 
-            try {
-                loadingMore = true;
-                toggleLoadMoreLoading(true);
-                errorMessage.classList.add('hidden');
-
-                const batchToFetch = currentSearchResults.slice(searchOffset, searchOffset + LIMIT);
-
-                if (batchToFetch.length === 0) {
-                    loadMoreContainer.classList.add('hidden');
-                    return;
-                }
-
-                const details = await fetchPokemonDetails(batchToFetch);
-                
-                searchOffset += LIMIT;
-                renderGrid(details, true); 
-
-                if (searchOffset < currentSearchResults.length) {
-                    loadMoreContainer.classList.remove('hidden');
-                } else {
-                    loadMoreContainer.classList.add('hidden');
-                }
-
-            } catch (err) {
-                console.error("Search fetch error:", err);
-                errorMessage.classList.remove('hidden');
-            } finally {
-                loadingMore = false;
-                toggleLoadMoreLoading(false);
-            }
-        }
-        
-        /**
-         * Handles the search input, filtering and triggering search results.
-         */
-        async function handleSearch(term) {
-            const lowerTerm = term.toLowerCase().trim();
-            grid.innerHTML = '';
-            noResults.classList.add('hidden');
-            loadMoreContainer.classList.add('hidden');
-            
-            // --- SEARCH CLEARED ---
-            if (lowerTerm === '') {
-                isSearching = false;
-                currentSearchResults = [];
-                searchOffset = 0;
-                clearSearchBtn.classList.add('hidden');
-                
-                const loadedSoFar = allPokemonNamesList.slice(0, mainListOffset);
-                const detailsToRender = loadedSoFar.map(p => loadedPokemonDetails[p.name]).filter(Boolean);
-                renderGrid(detailsToRender, false); 
-                
-                if (mainListOffset < allPokemonNamesList.length) {
-                    loadMoreContainer.classList.remove('hidden');
-                }
+            if (!nickname) {
+                window.showMessage("Please enter a nickname.");
                 return;
             }
-            
-            // --- ACTIVE SEARCH ---
-            isSearching = true;
-            clearSearchBtn.classList.remove('hidden');
-            initialLoader.classList.remove('hidden'); 
-            errorMessage.classList.add('hidden');
-            
-            currentSearchResults = allPokemonNamesList.filter(p => {
-                const id = getIdFromUrl(p.url).toString();
-                return p.name.includes(lowerTerm) || id === lowerTerm;
-            });
-            
-            searchOffset = 0; 
-            
-            if (currentSearchResults.length === 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                await loadMoreSearchResults();
+
+            if (!currentUser) {
+                window.showMessage("System not ready. Please wait.");
+                return;
             }
-            
-            initialLoader.classList.add('hidden');
-        }
 
-        /**
-         * NEW: Sorts the master list based on `currentSort`
-         */
-        function sortMasterList() {
-            if (currentSort === 'id') {
-                allPokemonNamesList.sort((a, b) => getIdFromUrl(a.url) - getIdFromUrl(b.url));
-            } else if (currentSort === 'name') {
-                allPokemonNamesList.sort((a, b) => a.name.localeCompare(b.name));
-            }
-        }
-
-        /**
-         * NEW: Handles the sort dropdown changing
-         */
-        function handleSortChange(e) {
-            const newSort = e.target.value;
-            if (newSort === currentSort) return; // No change
-
-            currentSort = newSort;
-            
-            // Reset everything
-            grid.innerHTML = '';
-            mainListOffset = 0;
-            searchOffset = 0;
-            isSearching = false;
-            searchInput.value = '';
-            clearSearchBtn.classList.add('hidden');
-            noResults.classList.add('hidden');
-            initialLoader.classList.remove('hidden');
-
-            // Re-sort the master list
-            sortMasterList();
-            
-            // Load the first batch of the newly sorted list
-            loadMorePokemon().finally(() => {
-                initialLoader.classList.add('hidden');
-            });
-        }
-
-
-        /**
-         * Toggles the loading state of the "Load More" button.
-         */
-        function toggleLoadMoreLoading(isLoading) {
-            const loader = loadMoreBtn.querySelector('.loader');
-            const icon = loadMoreBtn.querySelector('.btn-icon');
-            const text = loadMoreBtn.querySelector('.btn-text');
-            
-            loadMoreBtn.disabled = isLoading;
-            if (isLoading) {
-                loader.classList.remove('hidden');
-                icon.classList.add('hidden');
-                text.textContent = 'Loading...';
-            } else {
-                loader.classList.add('hidden');
-                icon.classList.remove('hidden');
-                text.textContent = 'Load More Pokémon';
-            }
-        }
-
-        // --- Rendering ---
-
-        function getTypeBadgeHTML(type) {
-            const bg = TYPE_COLORS[type] || 'bg-gray-400';
-            return `
-                <span class="px-2 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1 w-fit ${bg}">
-                    <i data-lucide="sparkles" class="w-3 h-3"></i>
-                    ${type}
-                </span>
-            `;
-        }
-
-        function createPokemonCard(pokemon) {
-            const mainType = pokemon.types[0].type.name;
-            const bgColor = TYPE_COLORS[mainType] || 'bg-gray-500';
-
-            const btn = document.createElement('button');
-            btn.className = `group relative h-40 w-full rounded-2xl p-4 text-left transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg overflow-hidden flex flex-col justify-between text-white ${bgColor} animate-fade-in`;
-            btn.onclick = () => openModal(pokemon);
-
-            btn.innerHTML = `
-                <!-- Pokeball background decoration -->
-                <div class="absolute -right-4 -bottom-4 text-white/10 rotate-12 pointer-events-none">
-                    <svg width="100" height="100" viewBox="0 0 100 100" fill="currentColor">
-                        <path d="M50 5C25.147 5 5 25.147 5 50s20.147 45 45 45 45-20.147 45-45S74.853 5 50 5zm0 80c-19.33 0-35-15.67-35-35s15.67-35 35-35 35 15.67 35 35-15.67 35-35 35z"/>
-                        <path d="M50 25c-13.807 0-25 11.193-25 25s11.193 25 25 25 25-11.193 25-25-11.193-25-25-25zm0 40c-8.284 0-15-6.716-15-15s6.716-15 15-15 15 6.716 15 15-6.716 15-15 15z"/>
-                    </svg>
-                </div>
-                <!-- Card content -->
-                <div class="relative z-10">
-                    <span class="font-bold text-2xl tracking-tight drop-shadow-md block leading-none mb-1">
-                        ${capitalize(pokemon.name)}
-                    </span>
-                    <span class="text-white/70 font-mono text-sm font-bold backdrop-blur-sm bg-black/10 px-2 py-0.5 rounded-lg">
-                        ${formatId(pokemon.id)}
-                    </span>
-                </div>
-                <div class="flex gap-1 mt-2 relative z-10">
-                    ${pokemon.types.map(t => getTypeBadgeHTML(t.type.name)).join('')}
-                </div>
-                <img 
-                    src="${pokemon.sprites.other['official-artwork'].front_default}" 
-                    alt="${pokemon.name}"
-                    class="absolute bottom-1 right-1 w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-300 z-20"
-                    loading="lazy"
-                >
-            `;
-            return btn;
-        }
-
-        /**
-         * Renders Pokémon cards to the grid.
-         */
-        function renderGrid(pokemons, isAppend) {
-            if (!isAppend) grid.innerHTML = '';
-            pokemons.forEach(p => {
-                grid.appendChild(createPokemonCard(p));
-            });
-            lucide.createIcons(); 
-        }
-
-        // --- Modal Logic ---
-
-        /**
-         * Fetches species data (for flavor text) and populates it in the modal.
-         */
-        async function fetchSpeciesData(pokemon) {
-            const flavorTextEl = document.getElementById('flavorText');
-            const loaderEl = document.getElementById('flavorTextLoader');
-            if (!flavorTextEl || !loaderEl) return;
-
+            // 1. Update Profile & State
             try {
-                const speciesRes = await fetch(pokemon.species.url);
-                if (!speciesRes.ok) throw new Error('Failed to fetch species');
-                const speciesData = await speciesRes.json();
-                
-                const entry = speciesData.flavor_text_entries.find(e => e.language.name === 'en');
-                
-                if (entry) {
-                    const cleanText = entry.flavor_text.replace(/[\n\f\r]/g, ' ');
-                    flavorTextEl.textContent = cleanText;
-                    flavorTextEl.classList.remove('hidden');
-                } else {
-                    flavorTextEl.textContent = 'No Pokédex entry found.';
-                    flavorTextEl.classList.remove('hidden');
-                }
-            } catch (err) {
-                console.error('Failed to fetch species data:', err);
-                flavorTextEl.textContent = 'Could not load Pokédex entry.';
-                flavorTextEl.classList.remove('hidden');
-            } finally {
-                loaderEl.classList.add('hidden');
+                await updateProfile(currentUser, { displayName: nickname });
+                currentUser = auth.currentUser;
+                userNickname = nickname; // Update state
+                window.showMessage(`Welcome, ${nickname}! Registration complete.`);
+            } catch(e) {
+                console.error("Failed to update profile:", e);
+                window.showMessage("Failed to save nickname.");
             }
+            
+            // 2. Save Nickname/Location to Local Storage 
+            localStorage.setItem('faunadex_nickname', nickname);
+            localStorage.setItem('faunadex_location', userLocation);
+
+            // 3. Hide setup screen and proceed to main app
+            if (setupOverlay) setupOverlay.classList.add('hidden');
+            subscribeToData(); // Start data sync after setup
         }
 
-        /**
-         * Opens the detail modal for a given Pokémon.
-         */
-        function openModal(pokemon) {
-            const mainType = pokemon.types[0].type.name;
-            const bgClass = TYPE_COLORS[mainType];
-            const textClass = bgClass.replace('bg-', 'text-');
+        async function renderSetupScreen() {
+            if (!setupOverlay) return;
+            
+            await getGeolocation(); 
+            
+            const savedNickname = localStorage.getItem('faunadex_nickname') || currentUser?.displayName || '';
+            
+            setupOverlay.classList.remove('hidden');
+            setupOverlay.classList.add('flex');
+            
+            const userIsAnonymous = currentUser ? currentUser.isAnonymous : true;
+            let authStatusText = '';
+            if (!currentUser) {
+                 authStatusText = 'CONNECTING...';
+            } else if (userIsAnonymous) {
+                 authStatusText = 'GUEST MODE (Temporary Data)';
+            } else {
+                 authStatusText = 'PERSISTENT ACCOUNT (Data Saved)';
+            }
 
-            // NEW: Get sprite URLs for shiny toggle
-            const defaultSprite = pokemon.sprites.other['official-artwork'].front_default;
-            const shinySprite = pokemon.sprites.other['official-artwork'].front_shiny;
-
-            // Construct Stats HTML
-            const statsHtml = pokemon.stats.map(s => {
-                const val = s.base_stat;
-                const percent = Math.min((val / 255) * 100, 100);
-                let label = s.stat.name.replace('special-attack', 'SpA').replace('special-defense', 'SpD');
-                label = capitalize(label);
-                
-                return `
-                    <div class="flex items-center gap-3 text-xs">
-                        <div class="w-12 font-bold text-slate-400 uppercase">${label}</div>
-                        <div class="w-8 text-right font-mono font-bold text-slate-700">${val}</div>
-                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full ${bgClass}" style="width: ${percent}%"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Construct Abilities HTML
-            const abilitiesHtml = pokemon.abilities.map(a => `
-                <span class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border border-slate-200">
-                    ${capitalize(a.ability.name.replace('-', ' '))}
-                    ${a.is_hidden ? '<span class="ml-1 text-slate-400 text-[10px] uppercase">(Hidden)</span>' : ''}
-                </span>
-            `).join('');
-
-            // Modal container is populated
-            modal.innerHTML = `
-                <div class="bg-white w-full max-w-md h-[85vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative animate-slide-up" onclick="event.stopPropagation()">
+            setupOverlay.innerHTML = `
+                <div class="w-full p-4 bg-slate-800 rounded-lg shadow-xl border border-slate-700 space-y-4">
+                    <h2 class="text-3xl font-bold text-emerald-400 mb-4">FAUNADEX REGISTRATION</h2>
                     
-                    <!-- Header -->
-                    <div class="h-48 ${bgClass} relative shrink-0">
-                        <button onclick="closeModal()" class="absolute top-4 left-4 z-10 p-2 bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-full text-white transition-colors">
-                            <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                        </button>
-                        <span class="absolute top-6 right-6 text-white/30 font-black text-6xl font-mono tracking-tighter select-none">
-                            ${formatId(pokemon.id)}
-                        </span>
-                        <div class="absolute -bottom-16 left-1/2 -translate-x-1/2 w-48 h-48 z-20">
-                            <img id="pokemonModalImage" src="${defaultSprite}" class="w-full h-full object-contain drop-shadow-2xl animate-zoom-in">
-                            
-                            <!-- NEW: Shiny Toggle Button -->
-                            ${shinySprite ? `
-                            <button 
-                                onclick="toggleShiny(event, '${defaultSprite}', '${shinySprite}')" 
-                                class="absolute top-0 right-0 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:text-yellow-300 transition-all"
-                                title="Toggle shiny"
-                            >
-                                <i data-lucide="sparkles" class="w-5 h-5"></i>
-                            </button>
-                            ` : ''}
+                    <div class="space-y-2">
+                        <label for="nicknameInput" class="text-slate-400 text-sm block">Explorer Nickname:</label>
+                        <input type="text" id="nicknameInput" value="${savedNickname}" placeholder="Enter a name..." class="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 focus:border-emerald-500 outline-none">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-slate-400 text-sm block">Authentication Status:</label>
+                        <div class="w-full bg-slate-900 text-yellow-400 px-3 py-2 rounded-lg border border-slate-700 text-sm font-mono flex items-center justify-between gap-2">
+                            <span>${authStatusText}</span>
+                            <i data-lucide="${userIsAnonymous ? 'user-x' : 'user-check'}" class="w-4 h-4 text-emerald-400"></i>
                         </div>
                     </div>
 
-                    <!-- Body -->
-                    <div class="flex-1 overflow-y-auto pt-20 px-6 pb-8">
-                        <div class="text-center mb-4">
-                            <h2 class="text-3xl font-bold text-slate-800 mb-2">${capitalize(pokemon.name)}</h2>
-                            <div class="flex justify-center gap-2">
-                                ${pokemon.types.map(t => getTypeBadgeHTML(t.type.name)).join('')}
-                            </div>
-                        </div>
-                        
-                        <!-- Flavor Text -->
-                        <div class="mb-6">
-                             <p id="flavorText" class="text-slate-600 text-center text-sm italic hidden"></p>
-                             <p id="flavorTextLoader" class="text-slate-400 italic text-center text-sm">Loading Pokédex entry...</p>
-                        </div>
-
-
-                        <!-- Measurements -->
-                        <div class="mb-6">
-                            <h3 class="text-sm font-bold mb-3 ${textClass} uppercase tracking-wider">About</h3>
-                            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl">
-                                <div class="flex flex-col items-center gap-1 p-2">
-                                    <div class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase">
-                                        <i data-lucide="weight" class="w-3 h-3"></i> Weight
-                                    </div>
-                                    <span class="font-mono text-slate-700 font-bold text-lg">${pokemon.weight / 10} <span class="text-sm text-slate-400">kg</span></span>
-                                </div>
-                                <div class="flex flex-col items-center gap-1 p-2 border-l border-slate-200">
-                                    <div class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase">
-                                        <i data-lucide="ruler" class="w-3 h-3"></i> Height
-                                    </div>
-                                    <span class="font-mono text-slate-700 font-bold text-lg">${pokemon.height / 10} <span class="text-sm text-slate-400">m</span></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Stats -->
-                        <div class="mb-6">
-                            <h3 class="text-sm font-bold mb-3 ${textClass} uppercase tracking-wider">Base Stats</h3>
-                            <div class="space-y-3">${statsHtml}</div>
-                        </div>
-
-                        <!-- Abilities -->
-                        <div>
-                            <h3 class="text-sm font-bold mb-3 ${textClass} uppercase tracking-wider">Abilities</h3>
-                            <div class="flex flex-wrap gap-2">${abilitiesHtml}</div>
+                    <div class="space-y-2">
+                        <label class="text-slate-400 text-sm block">Current Scanning Location:</label>
+                        <div class="w-full bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-700 text-sm font-mono flex items-center gap-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-red-400"></i>
+                            <span id="currentLocationText">${userLocation}</span>
                         </div>
                     </div>
-                    
-                    <!-- Mobile Close -->
-                    <button onclick="closeModal()" class="absolute top-4 right-4 sm:hidden p-2 bg-white/20 backdrop-blur-md rounded-full text-white">
-                        <i data-lucide="x" class="w-6 h-6"></i>
+
+                    <p class="text-xs text-slate-500 italic pt-2">*Your nickname and location will be tagged to all scans.</p>
+
+                    <button onclick="window.completeSetup()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-lg shadow-md">
+                        START FAUNADEX
                     </button>
                 </div>
             `;
-            
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; 
             lucide.createIcons();
+        }
+
+        // --- Settings Management (API Key removed) ---
+        function renderSettings() {
+            const nickname = localStorage.getItem('faunadex_nickname') || currentUser?.displayName || 'Guest';
+            const fullUserId = currentUser ? currentUser.uid : 'N/A';
+            const userIsAnonymous = currentUser ? currentUser.isAnonymous : true;
             
-            fetchSpeciesData(pokemon);
+            if (!settingsOverlay) return;
+
+            settingsOverlay.innerHTML = `
+                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-2">
+                    <h2 class="text-white font-bold text-xl">SYSTEM CONFIG</h2>
+                    <button onclick="window.toggleSettings()" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+                </div>
+                
+                <div class="space-y-4 overflow-y-auto pb-4">
+                    <div class="text-emerald-400 text-xs break-all">
+                        <span class="block text-slate-500 mb-1">USER ID (for data access)</span>
+                        <span class="font-bold text-white">${fullUserId}</span>
+                    </div>
+                    
+                    <div class="text-emerald-400 text-xs">
+                        NICKNAME: <span class="font-bold text-white">${nickname}</span>
+                        <span class="block text-slate-500">STATUS: ${userIsAnonymous ? 'Temporary Guest' : 'Persistent Account'}</span>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700">
+                        <span class="block text-slate-500 text-xs font-bold uppercase mb-1">API Status</span>
+                        <span class="text-sm text-emerald-400 font-mono">Internal Key is Active.</span>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
         }
 
-        function closeModal() {
-            modal.classList.add('hidden');
-            document.body.style.overflow = 'auto'; 
-            modal.innerHTML = '';
-        }
+        window.toggleSettings = () => {
+            if (!settingsOverlay) return;
 
-        // --- Event Listeners ---
+            if (settingsOverlay.classList.contains('hidden')) {
+                renderSettings(); 
+                settingsOverlay.classList.remove('hidden');
+                settingsOverlay.classList.add('flex');
+            } else {
+                settingsOverlay.classList.add('hidden');
+                settingsOverlay.classList.remove('flex');
+            }
+        }
         
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchDebounceTimer);
-            searchDebounceTimer = setTimeout(() => {
-                handleSearch(e.target.value);
-            }, 300);
-        });
+        // window.saveApiKey removed as requested.
 
-        clearSearchBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            handleSearch('');
-        });
+        // --- Auth & Init ---
+        const initAuth = async () => {
+            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        loadMoreBtn.addEventListener('click', () => {
-            if (isSearching) {
-                loadMoreSearchResults();
+            if (authStatus) authStatus.innerText = "Attempting system authentication...";
+
+            if (token) {
+                try {
+                    if (authStatus) authStatus.innerText = "Authenticating with platform token...";
+                    await signInWithCustomToken(auth, token);
+                    return; 
+                } catch (error) {
+                    console.warn(`Custom token failed. Falling back to anonymous sign in...`);
+                }
+            }
+
+            try {
+                if (authStatus) authStatus.innerText = "Connecting to anonymous network...";
+                await signInAnonymously(auth);
+            } catch (anonError) {
+                console.error("Anonymous sign in failed:", anonError);
+                window.showMessage("Critical Auth Error: Cannot connect to Firebase.");
+
+                if (authStatus) {
+                    authStatus.innerText = `CRITICAL AUTH ERROR: ${anonError.code}`;
+                    authStatus.classList.remove("text-emerald-300");
+                    authStatus.classList.add("text-red-400");
+                }
+                
+                if (authOverlay) {
+                    const loader = authOverlay.querySelector('i');
+                    if (loader) loader.classList.add('hidden');
+                }
+            }
+        };
+        
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            
+            if (user) {
+                if (authStatus) authStatus.innerText = "SYSTEM ONLINE. READY.";
+                setTimeout(() => {
+                    if (authOverlay) authOverlay.classList.add('hidden');
+                }, 500);
+
+                const isSetupComplete = !!localStorage.getItem('faunadex_nickname');
+                
+                if (!isSetupComplete) {
+                    renderSetupScreen();
+                } else {
+                    userNickname = localStorage.getItem('faunadex_nickname');
+                    if (setupOverlay) setupOverlay.classList.add('hidden');
+                    subscribeToData();
+                }
+                
+                if (!settingsOverlay.classList.contains('hidden')) {
+                    renderSettings();
+                }
+
             } else {
-                loadMorePokemon();
+                currentUser = null;
+                if (setupOverlay) setupOverlay.classList.remove('hidden');
+                renderSetupScreen(); 
             }
         });
+        
+        initAuth();
 
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                closeModal();
+        // --- Data Sync ---
+        function subscribeToData() {
+            if (!currentUser) {
+                renderList(); 
+                return;
             }
-        });
+            try {
+                const userPath = `artifacts/${appId}/users/${currentUser.uid}/sightings`;
+                const q = collection(db, userPath);
 
-        // NEW: Sort listener
-        sortSelect.addEventListener('change', handleSortChange);
+                onSnapshot(q, (snapshot) => {
+                    sightings = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                    // IMPORTANT: Filter out any duplicates based on scientificName before saving/rendering
+                    const uniqueSightings = sightings.filter((s, index, self) =>
+                        index === self.findIndex((t) => (
+                            t.scientificName === s.scientificName
+                        ))
+                    );
 
-        // NEW: Back to Top listener
-        backToTopBtn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
+                    sightings = uniqueSightings.sort((a, b) => b.timestamp - a.timestamp);
+                    renderList();
+                }, (error) => {
+                    console.error("Firestore snapshot error:", error);
+                    window.showMessage("Database connection error. Check Firestore rules.");
+                });
+            } catch (error) {
+                console.error("Error setting up data subscription:", error);
+            }
+        }
 
-        // NEW: Scroll listener for Back to Top
-        window.addEventListener('scroll', () => {
-            if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
-                backToTopBtn.classList.remove('hidden');
+        // --- Removal Functionality ---
+        window.removeSighting = async (id, name) => {
+            if (!currentUser) {
+                window.showMessage("Authentication required to delete records.");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to remove ${name} from your FaunaDex?`)) {
+                return;
+            }
+
+            try {
+                const userPath = `artifacts/${appId}/users/${currentUser.uid}/sightings`;
+                const docRef = doc(db, userPath, id);
+                await deleteDoc(docRef);
+                currentAnalysis = null;
+                window.showMessage(`${name} removed successfully.`);
+                renderList();
+            } catch (e) {
+                console.error("Error deleting document:", e);
+                window.showMessage("Failed to remove animal from Dex.");
+            }
+        };
+
+        // --- Rendering ---
+        function renderList() {
+            if (currentAnalysis) return; 
+            if (!contentArea) return;
+
+            const isGuest = currentUser ? currentUser.isAnonymous : true;
+            const uniqueAnimalCount = sightings.length;
+
+            if (uniqueAnimalCount === 0) {
+                contentArea.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-slate-500 opacity-60">
+                        <i data-lucide="aperture" class="w-16 h-16 mb-4"></i>
+                        <p class="text-center font-bold">GREETINGS, ${userNickname.toUpperCase()}</p>
+                        ${isGuest ? `<p class="text-xs text-center mt-2 text-yellow-500">Note: Your Guest data is temporary.</p>` : ''}
+                        <p class="text-xs text-center mt-2">SCAN A SPECIMEN TO BEGIN</p>
+                    </div>
+                `;
             } else {
-                backToTopBtn.classList.add('hidden');
+                contentArea.innerHTML = `
+                    <div class="flex justify-between items-center p-2 text-slate-400 text-xs mb-3 border-b border-slate-800">
+                        <span>${userNickname}'s SIGHTINGS</span>
+                        <span class="font-bold text-emerald-400">${uniqueAnimalCount} UNIQUE ANIMALS</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3">
+                        ${sightings.map(s => `
+                            <div onclick="window.viewSighting('${s.id}')" class="bg-slate-800/80 border border-slate-600 rounded p-2 flex gap-3 cursor-pointer hover:bg-slate-700 transition-colors group">
+                                <div class="w-16 h-16 bg-slate-900 rounded border border-slate-700 overflow-hidden shrink-0">
+                                    <img src="${s.imageBase64}" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all">
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-start">
+                                        <h3 class="text-emerald-400 font-bold truncate">${s.nickname}</h3>
+                                        <span class="text-[10px] text-slate-500 font-mono">${new Date(s.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                    <p class="text-slate-400 text-xs italic truncate">${s.scientificName}</p>
+                                    <div class="mt-1 flex items-center gap-1">
+                                        <span class="px-1.5 py-0.5 bg-slate-700 text-slate-300 text-[10px] rounded font-bold uppercase">${s.rarity}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
             }
-        });
+            lucide.createIcons();
+        }
 
-        // --- Initialize ---
-        lucide.createIcons(); // Initial icons (header, etc)
-        initialize(); // Start by fetching the master list
+        window.viewSighting = (id) => {
+            const s = sightings.find(item => item.id === id);
+            if(!s) return;
+            renderDetail(s, false);
+        };
+
+        function renderDetail(data, isNew = false) {
+            currentAnalysis = isNew ? data : null;
+            
+            if (!contentArea) return;
+
+            const dangerColor = data.dangerLevel === 'Safe' ? 'text-emerald-400' : 'text-red-400';
+            
+            contentArea.innerHTML = `
+                <div class="flex flex-col h-full animate-in fade-in duration-300">
+                    <div class="flex items-center justify-between mb-2">
+                        <button onclick="window.goHome()" class="text-slate-400 hover:text-white flex items-center gap-1 text-xs uppercase font-bold">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i> Back
+                        </button>
+                        ${isNew ? '<span class="text-yellow-400 text-xs animate-pulse font-bold">NEW DISCOVERY!</span>' : `
+                            <button onclick="window.removeSighting('${data.id}', '${data.nickname}')" class="text-red-500 hover:text-red-400 flex items-center gap-1 text-xs uppercase font-bold">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i> Remove
+                            </button>
+                        `}
+                    </div>
+
+                    <div class="bg-slate-900 border-2 border-slate-700 rounded-lg p-1 mb-3 relative">
+                        <img src="${data.imageBase64}" class="w-full h-40 object-cover rounded border border-slate-800 block">
+                        <div class="absolute bottom-2 right-2 bg-black/70 px-2 py-1 text-[10px] text-emerald-400 font-mono border border-emerald-900/50 rounded">
+                            TYPE: ${data.diet.toUpperCase()}
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 overflow-y-auto pb-4 pr-1">
+                        <div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Identification</div>
+                            ${isNew ? `
+                                <input id="nicknameInput" type="text" value="${data.commonName}" class="w-full bg-slate-800 border border-slate-600 text-white px-2 py-1 rounded text-lg font-bold focus:border-emerald-500 outline-none" placeholder="Enter Nickname">
+                            ` : `
+                                <h2 class="text-2xl text-white font-bold leading-none">${data.nickname}</h2>
+                            `}
+                            <p class="text-emerald-500 text-sm italic font-mono mt-1">${data.scientificName}</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                            <div class="bg-slate-800/50 p-2 rounded border border-slate-700">
+                                <span class="text-slate-500 block text-[9px]">WEIGHT</span>
+                                <span class="text-slate-200">${data.estimatedWeight}</span>
+                            </div>
+                            <div class="bg-slate-800/50 p-2 rounded border border-slate-700">
+                                <span class="text-slate-500 block text-[9px]">THREAT</span>
+                                <span class="${dangerColor} font-bold uppercase">${data.dangerLevel}</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/30 p-3 rounded border border-slate-700">
+                            <h4 class="text-xs text-slate-500 uppercase mb-1 flex items-center gap-2">
+                                <i data-lucide="info" class="w-3 h-3"></i> Database Entry
+                            </h4>
+                            <p class="text-sm text-slate-300 leading-relaxed">
+                                ${data.funFact}
+                            </p>
+                        </div>
+                        
+                        <div class="text-[10px] text-slate-600 font-mono pt-2 border-t border-slate-800">
+                            LOC: ${data.location}<br>
+                            TIME: ${new Date(data.timestamp).toLocaleTimeString()}
+                        </div>
+
+                        ${isNew ? `
+                            <button onclick="window.saveCurrent()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded font-bold shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 mt-2">
+                                <i data-lucide="save" class="w-4 h-4"></i> REGISTER TO DEX
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        window.goHome = () => {
+            currentAnalysis = null;
+            renderList();
+        };
+
+        window.saveCurrent = async () => {
+            if (!currentAnalysis || !currentUser) {
+                window.showMessage("Error: No data or user to save.");
+                return;
+            };
+            const nickInput = document.getElementById('nicknameInput');
+            const finalData = {
+                ...currentAnalysis,
+                nickname: nickInput ? nickInput.value : currentAnalysis.commonName
+            };
+
+            // --- DUPLICATE CHECK ---
+            if (sightings.some(s => s.scientificName === finalData.scientificName)) {
+                window.showMessage(`Duplicate detected: ${finalData.scientificName} is already in the Dex.`);
+                currentAnalysis = null;
+                renderList();
+                return;
+            }
+            // --- END DUPLICATE CHECK ---
+
+            try {
+                const userPath = `artifacts/${appId}/users/${currentUser.uid}/sightings`;
+                await addDoc(collection(db, userPath), finalData);
+                currentAnalysis = null;
+                renderList();
+            } catch (e) {
+                console.error("Error saving to Firestore: ", e);
+                window.showMessage("Error saving: " + e.message);
+            }
+        };
+
+        // --- Image Handling & AI ---
+
+        const compressImage = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onerror = reject;
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onerror = reject;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 600;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                };
+            });
+        };
+
+        const handleFile = async (file) => {
+            if (!file) return;
+            
+            if (!currentUser) {
+                window.showMessage("SYSTEM OFFLINE. Cannot scan.");
+                return;
+            }
+
+            if (setupOverlay && !setupOverlay.classList.contains('hidden')) {
+                 window.showMessage("Please complete the registration screen first.");
+                 return;
+            }
+            
+            if (scanOverlay) scanOverlay.classList.remove('hidden');
+            if (scanOverlay) scanOverlay.classList.add('flex');
+            if (scanStatus) scanStatus.innerText = "Compressing Visual Data...";
+            
+            try {
+                const locStr = userLocation.startsWith('Geo') ? userLocation : `(${userLocation})`;
+
+                const base64Full = await compressImage(file);
+                const base64Raw = base64Full.split(',')[1];
+
+                if (scanStatus) scanStatus.innerText = "Identifying Species...";
+                
+                // Using the internal, environment-provided API key
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+                
+                const systemPrompt = `You are FaunaDex, a digital animal scanner. Analyze the image and provide a structured JSON output with the following fields: commonName (species name), scientificName (Latin name), estimatedWeight (e.g., "5 kg"), dangerLevel ("Safe", "Caution", "Danger"), diet ("Carnivore", "Herbivore", "Omnivore"), rarity ("Common", "Uncommon", "Rare", "Legendary"), funFact (a short, interesting, single paragraph about the animal). The language must be professional and concise.`;
+                const userQuery = "Identify the animal in the image and generate the structured analysis.";
+
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: userQuery },
+                            { inlineData: { mimeType: file.type, data: base64Raw } }
+                        ]
+                    }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "commonName": { "type": "STRING" },
+                                "scientificName": { "type": "STRING" },
+                                "estimatedWeight": { "type": "STRING" },
+                                "dangerLevel": { "type": "STRING" },
+                                "diet": { "type": "STRING" },
+                                "rarity": { "type": "STRING" },
+                                "funFact": { "type": "STRING" },
+                            },
+                            required: ["commonName", "scientificName", "estimatedWeight", "dangerLevel", "diet", "rarity", "funFact"]
+                        }
+                    }
+                };
+
+                let response;
+                let result;
+                let attempts = 0;
+                const maxAttempts = 3;
+                
+                if (scanStatus) scanStatus.innerText = "Querying Gemini AI...";
+
+                while (attempts < maxAttempts) {
+                    try {
+                        response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            result = await response.json();
+                            break; 
+                        } else if (response.status === 429) {
+                            attempts++;
+                            const delay = Math.pow(2, attempts) * 1000;
+                            if (attempts < maxAttempts) {
+                                await new Promise(res => setTimeout(res, delay));
+                            }
+                        } else {
+                            const errorBody = await response.json();
+                            throw new Error(`API Error ${response.status}: ${JSON.stringify(errorBody)}`);
+                        }
+                    } catch (e) {
+                        if (attempts === maxAttempts - 1) throw e;
+                        attempts++;
+                        const delay = Math.pow(2, attempts) * 1000;
+                        await new Promise(res => setTimeout(res, delay));
+                    }
+                }
+                
+                if (!result) throw new Error("API failed after maximum retries.");
+
+
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) throw new Error("No analysis received from AI.");
+
+                const analysisData = JSON.parse(jsonText);
+
+                const sighting = {
+                    ...analysisData,
+                    imageBase64: base64Full,
+                    location: locStr,
+                    timestamp: Date.now(),
+                    nickname: analysisData.commonName 
+                };
+                
+                if (scanOverlay) scanOverlay.classList.add('hidden');
+                
+                renderDetail(sighting, true);
+
+            } catch (error) {
+                console.error("Scanning Error:", error);
+                if (scanOverlay) scanOverlay.classList.add('hidden');
+                window.showMessage("Scan Failed: " + error.message.substring(0, 100));
+            }
+        };
+
+        // --- Event Listeners (Drag/Drop/File Input) ---
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+
+        const preventDefaults = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        };
+
+        const dexScreen = document.querySelector('.dex-screen');
+        if (dexScreen) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dexScreen.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dexScreen.addEventListener(eventName, () => {
+                    if (dragOverlay) dragOverlay.classList.remove('hidden');
+                    dragOverlay.classList.add('flex');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dexScreen.addEventListener(eventName, () => {
+                    if (dragOverlay) dragOverlay.classList.add('hidden');
+                    dragOverlay.classList.remove('flex');
+                }, false);
+            });
+
+            dexScreen.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    handleFile(files[0]);
+                }
+            }, false);
+        }
 
     </script>
 </body>
